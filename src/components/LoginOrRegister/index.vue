@@ -13,7 +13,7 @@ defineProps({
 </script>
 <style lang="less" scoped>
 .login {
-  background-image: url(@/assets/images/bg.png);
+  background-image: url(https://login.kcallme.com/Login/webapp/images/web_bg_1.png);
   background-position: center center;
   background-size: cover;
   background-repeat: no-repeat;
