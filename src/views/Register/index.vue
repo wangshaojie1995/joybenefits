@@ -3,12 +3,14 @@
     <div class="register">
       <FormItem label="用户名" v-model="form.username" :maxlength="20" />
       <FormItem label="手机号" v-model="form.phone" :maxlength="11" />
-      <FormItem label="密码" v-model="form.password" />
-      <FormItem label="确认密码" v-model="form.confirm_password" />
+      <FormItem label="密码" v-model="form.password" type="password" />
+      <FormItem label="确认密码" v-model="form.confirm_password" type="password" />
       <Captcha v-model="form.captcha" />
       <SmsCode v-model="form.sms" :captcha="form.captcha" :phone="form.phone" />
       <div class="btn text-center">
-        <Button type="primary" shape="round" @click="handleRegister">立即注册</Button>
+        <Button type="primary" shape="round" @click="handleRegister" :loading="loading"
+          >立即注册</Button
+        >
       </div>
       <div class="control flex justify-between items-center">
         <div class="cursor-pointer" @click="handleLogin">已有账号？立即登录</div>
@@ -17,10 +19,12 @@
   </LoginOrRegister>
 </template>
 <script lang="ts" setup>
+import { RegisterApi } from '@/api/auth'
 import Captcha from '@/components/Captcha.vue'
 import FormItem from '@/components/FormItem/index.vue'
 import LoginOrRegister from '@/components/LoginOrRegister/index.vue'
 import SmsCode from '@/components/SmsCode.vue'
+import useRequest from '@/hooks/useRequest'
 import { escHTML, PasswordValidate, PhoneValidate, UsernameValidate } from '@/utils'
 import { Button, message } from 'ant-design-vue'
 import { Md5 } from 'ts-md5'
@@ -34,6 +38,12 @@ const form = reactive({
   confirm_password: '',
   captcha: '',
   sms: '',
+})
+const { request, loading } = useRequest(RegisterApi, {
+  manual: true,
+  onSuccess(res) {
+    router.push('/')
+  },
 })
 function handleRegister() {
   if (!form.username) {
@@ -73,8 +83,12 @@ function handleRegister() {
     return
   }
   const encryptedPassword = Md5.hashStr(form.password)
-  const validatedUsername = escHTML(form.username)
-  // TODO: 验证码也 escHTML
+  request({
+    username: escHTML(form.username),
+    phone: form.phone,
+    password: encryptedPassword,
+    sms: escHTML(form.sms),
+  })
 }
 function handleLogin() {
   router.push({

@@ -8,7 +8,7 @@
       </template>
       <FormItem label="密码" v-model="form.password" type="password" v-else />
       <div class="btn text-center">
-        <Button type="primary" shape="round" @click="login">立即登录</Button>
+        <Button type="primary" shape="round" @click="login" :loading="loading">立即登录</Button>
       </div>
       <div class="control flex justify-between items-center">
         <div class="cursor-pointer" @click="handleChangeSms">
@@ -20,11 +20,13 @@
   </LoginOrRegister>
 </template>
 <script lang="ts" setup>
+import { LoginApi } from '@/api/auth'
 import Captcha from '@/components/Captcha.vue'
 import FormItem from '@/components/FormItem/index.vue'
 import LoginOrRegister from '@/components/LoginOrRegister/index.vue'
 import SmsCode from '@/components/SmsCode.vue'
-import { PasswordValidate, PhoneValidate } from '@/utils'
+import useRequest from '@/hooks/useRequest'
+import { escHTML, PasswordValidate, PhoneValidate } from '@/utils'
 import { Button, message } from 'ant-design-vue'
 import { Md5 } from 'ts-md5'
 import { reactive, ref } from 'vue'
@@ -39,29 +41,41 @@ const form = reactive({
 })
 // 短信登录标识
 const isSms = ref(false)
+const { request, loading } = useRequest(LoginApi, {
+  manual: true,
+  onSuccess(res) {
+    router.push('/')
+  },
+})
 function login() {
-  console.log(form)
   if (!form.phone) {
     message.error('请输入手机号')
-    return
-  }
-  if (!form.password) {
-    message.error('请输入密码')
     return
   }
   if (!PhoneValidate(form.phone)) {
     message.warn('请输入正确的手机号')
     return
   }
-  if (!PasswordValidate(form.password)) {
-    message.warn('密码格式错误,8-20位大小写字母数字格式')
-    return
+  if (!isSms.value) {
+    if (!form.password) {
+      message.error('请输入密码')
+      return
+    }
+    if (!PasswordValidate(form.password)) {
+      message.warn('密码格式错误,8-20位大小写字母数字格式')
+      return
+    }
   }
+
   if (isSms.value && !form.sms) {
     message.warn('请输入短信验证码')
     return
   }
-  const encryptedPassword = Md5.hashStr(form.password)
+  request({
+    phone: form.phone,
+    password: isSms.value ? '' : Md5.hashStr(form.password),
+    sms: escHTML(form.sms),
+  })
 }
 function handleRegister() {
   router.push({
@@ -69,6 +83,9 @@ function handleRegister() {
   })
 }
 function handleChangeSms() {
+  form.password = ''
+  form.sms = ''
+  form.captcha = ''
   isSms.value = !isSms.value
 }
 </script>
